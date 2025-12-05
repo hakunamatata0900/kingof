@@ -173,7 +173,7 @@ export const MaintenanceProvider = ({ children }: { children: ReactNode }) => {
           task.deadline < today
         ) {
           changed = true;
-          return { ...task, status: 'overdue', updatedAt: new Date() };
+          return { ...task, status: 'overdue' as TaskStatus, updatedAt: new Date() };
         }
         return task;
       });

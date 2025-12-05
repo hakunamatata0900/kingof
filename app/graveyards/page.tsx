@@ -3,10 +3,13 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGraveyard, Graveyard } from '@/contexts/GraveyardContext';
-import { Plus, Search, MapPin, Edit, Trash2, Grid3x3, Lock } from 'lucide-react';
+import { Plus, Search, MapPin, Edit, Trash2, Grid3x3, Lock, ChevronLeft, Map } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import GraveyardForm from '@/components/GraveyardForm';
+import MapEditor from '@/components/MapEditor';
+import GraveyardPropertiesPanel from '@/components/GraveyardPropertiesPanel';
 
 export default function GraveyardsPage() {
   const { isAuthenticated, user } = useAuth();
@@ -28,6 +31,8 @@ export default function GraveyardsPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingGraveyard, setEditingGraveyard] = useState<Graveyard | null>(null);
+  const [selectedGraveyard, setSelectedGraveyard] = useState<Graveyard | null>(null);
+  const [showMapEditor, setShowMapEditor] = useState(false);
 
   const filteredGraveyards = graveyards.filter(
     (g) =>
@@ -55,6 +60,24 @@ export default function GraveyardsPage() {
 
   const getPlotCount = (graveyardId: string) => {
     return plots.filter((p) => p.graveyardId === graveyardId).length;
+  };
+
+  const handleSavePolygon = (coordinates: [number, number][], center: [number, number]) => {
+    if (selectedGraveyard) {
+      updateGraveyard(selectedGraveyard.id, {
+        polygon: { coordinates, center },
+        latitude: center[0],
+        longitude: center[1],
+      });
+      setShowMapEditor(false);
+    }
+  };
+
+  const handleUpdateGraveyard = (updates: Partial<Graveyard>) => {
+    if (selectedGraveyard) {
+      updateGraveyard(selectedGraveyard.id, updates);
+      setSelectedGraveyard({ ...selectedGraveyard, ...updates });
+    }
   };
 
   return (
@@ -115,6 +138,16 @@ export default function GraveyardsPage() {
                     </div>
                     <div className="flex gap-2">
                       <button
+                        onClick={() => {
+                          setSelectedGraveyard(graveyard);
+                          setShowMapEditor(true);
+                        }}
+                        className="rounded-lg p-2 hover:bg-green-100 transition-colors"
+                        title="Edit boundary"
+                      >
+                        <Map className="h-4 w-4 text-green-600" />
+                      </button>
+                      <button
                         onClick={() => setEditingGraveyard(graveyard)}
                         className="rounded-lg p-2 hover:bg-blue-100 transition-colors"
                       >
@@ -162,6 +195,35 @@ export default function GraveyardsPage() {
             setEditingGraveyard(null);
           }}
         />
+      )}
+
+      <Dialog open={showMapEditor} onOpenChange={setShowMapEditor}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden">
+          <DialogHeader className="px-6 py-4 border-b border-slate-200">
+            <DialogTitle>Edit Graveyard Boundary</DialogTitle>
+          </DialogHeader>
+          {selectedGraveyard && (
+            <div className="overflow-hidden flex-1">
+              <MapEditor
+                onSavePolygon={handleSavePolygon}
+                initialPolygon={selectedGraveyard.polygon}
+                onClose={() => setShowMapEditor(false)}
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {selectedGraveyard && !showMapEditor && (
+        <Dialog open={!!selectedGraveyard} onOpenChange={() => setSelectedGraveyard(null)}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden p-0">
+            <GraveyardPropertiesPanel
+              graveyard={selectedGraveyard}
+              onUpdate={handleUpdateGraveyard}
+              onClose={() => setSelectedGraveyard(null)}
+            />
+          </DialogContent>
+        </Dialog>
       )}
     </div>
   );

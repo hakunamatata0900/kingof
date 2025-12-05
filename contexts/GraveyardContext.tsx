@@ -8,6 +8,13 @@ export interface Graveyard {
   location: string;
   totalPlots: number;
   createdAt: Date;
+  polygon?: {
+    coordinates: [number, number][];
+    center?: [number, number];
+  };
+  latitude?: number;
+  longitude?: number;
+  area?: number;
 }
 
 export interface Plot {
