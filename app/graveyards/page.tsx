@@ -3,17 +3,16 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useGraveyard, Graveyard } from '@/contexts/GraveyardContext';
-import { Plus, Search, MapPin, Edit, Trash2, Grid3x3, Lock, ChevronLeft, Map } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import GraveyardForm from '@/components/GraveyardForm';
-import MapEditor from '@/components/MapEditor';
+import { Lock, X } from 'lucide-react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
+import GraveyardMapView from '@/components/GraveyardMapView';
 import GraveyardPropertiesPanel from '@/components/GraveyardPropertiesPanel';
 
 export default function GraveyardsPage() {
   const { isAuthenticated, user } = useAuth();
-  const { graveyards, plots, addGraveyard, updateGraveyard, deleteGraveyard } = useGraveyard();
+  const { graveyards, updateGraveyard } = useGraveyard();
+  const [selectedGraveyardId, setSelectedGraveyardId] = useState<string | undefined>();
+  const [showDetailsPanel, setShowDetailsPanel] = useState(false);
 
   if (!isAuthenticated || !['admin', 'staff'].includes(user?.role || '')) {
     return (
@@ -28,199 +27,46 @@ export default function GraveyardsPage() {
       </div>
     );
   }
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showForm, setShowForm] = useState(false);
-  const [editingGraveyard, setEditingGraveyard] = useState<Graveyard | null>(null);
-  const [selectedGraveyard, setSelectedGraveyard] = useState<Graveyard | null>(null);
-  const [showMapEditor, setShowMapEditor] = useState(false);
 
-  const filteredGraveyards = graveyards.filter(
-    (g) =>
-      g.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      g.location.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const selectedGraveyard = graveyards.find((g) => g.id === selectedGraveyardId);
 
-  const handleCreate = (data: { name: string; location: string }) => {
-    addGraveyard(data);
-    setShowForm(false);
-  };
-
-  const handleUpdate = (data: { name: string; location: string }) => {
-    if (editingGraveyard) {
-      updateGraveyard(editingGraveyard.id, data);
-      setEditingGraveyard(null);
-    }
-  };
-
-  const handleDelete = (id: string) => {
-    if (confirm('Are you sure you want to delete this graveyard? All plots and graves will be removed.')) {
-      deleteGraveyard(id);
-    }
-  };
-
-  const getPlotCount = (graveyardId: string) => {
-    return plots.filter((p) => p.graveyardId === graveyardId).length;
-  };
-
-  const handleSavePolygon = (coordinates: [number, number][], center: [number, number]) => {
-    if (selectedGraveyard) {
-      updateGraveyard(selectedGraveyard.id, {
-        polygon: { coordinates, center },
-        latitude: center[0],
-        longitude: center[1],
-      });
-      setShowMapEditor(false);
-    }
+  const handleSelectGraveyard = (graveyard: Graveyard) => {
+    setSelectedGraveyardId(graveyard.id);
+    setShowDetailsPanel(true);
   };
 
   const handleUpdateGraveyard = (updates: Partial<Graveyard>) => {
-    if (selectedGraveyard) {
-      updateGraveyard(selectedGraveyard.id, updates);
-      setSelectedGraveyard({ ...selectedGraveyard, ...updates });
+    if (selectedGraveyardId) {
+      updateGraveyard(selectedGraveyardId, updates);
+      if (selectedGraveyard) {
+        setSelectedGraveyardId(selectedGraveyard.id);
+      }
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 p-8">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-8 flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold text-slate-900 mb-2">Graveyards</h1>
-            <p className="text-slate-600">Manage your cemetery locations</p>
-          </div>
-          <Button
-            onClick={() => setShowForm(true)}
-            className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg"
-          >
-            <Plus className="mr-2 h-4 w-4" />
-            Add Graveyard
-          </Button>
-        </div>
-
-        <div className="mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
-            <Input
-              placeholder="Search by name or location..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 bg-white shadow-sm"
-            />
-          </div>
-        </div>
-
-        {filteredGraveyards.length === 0 ? (
-          <div className="rounded-2xl bg-white p-12 text-center shadow-lg">
-            <MapPin className="mx-auto h-12 w-12 text-slate-300 mb-4" />
-            <h3 className="text-lg font-semibold text-slate-900 mb-2">No graveyards found</h3>
-            <p className="text-slate-600 mb-4">
-              {searchQuery ? 'Try adjusting your search' : 'Get started by creating your first graveyard'}
-            </p>
-            {!searchQuery && (
-              <Button onClick={() => setShowForm(true)} className="bg-gradient-to-r from-blue-500 to-blue-600">
-                <Plus className="mr-2 h-4 w-4" />
-                Create Graveyard
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredGraveyards.map((graveyard) => (
-              <div
-                key={graveyard.id}
-                className="group relative overflow-hidden rounded-2xl bg-white shadow-lg hover:shadow-2xl transition-all duration-300 hover:-translate-y-1"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-cyan-50 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                <div className="relative p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-3 shadow-lg">
-                      <MapPin className="h-6 w-6 text-white" />
-                    </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => {
-                          setSelectedGraveyard(graveyard);
-                          setShowMapEditor(true);
-                        }}
-                        className="rounded-lg p-2 hover:bg-green-100 transition-colors"
-                        title="Edit boundary"
-                      >
-                        <Map className="h-4 w-4 text-green-600" />
-                      </button>
-                      <button
-                        onClick={() => setEditingGraveyard(graveyard)}
-                        className="rounded-lg p-2 hover:bg-blue-100 transition-colors"
-                      >
-                        <Edit className="h-4 w-4 text-blue-600" />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(graveyard.id)}
-                        className="rounded-lg p-2 hover:bg-red-100 transition-colors"
-                      >
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </button>
-                    </div>
-                  </div>
-
-                  <h3 className="text-xl font-bold text-slate-900 mb-2">{graveyard.name}</h3>
-                  <p className="text-sm text-slate-600 mb-4 flex items-start gap-2">
-                    <MapPin className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    {graveyard.location}
-                  </p>
-
-                  <div className="flex items-center gap-4 pt-4 border-t border-slate-200">
-                    <div className="flex items-center gap-2">
-                      <Grid3x3 className="h-4 w-4 text-slate-400" />
-                      <span className="text-sm font-medium text-slate-900">
-                        {getPlotCount(graveyard.id)} plots
-                      </span>
-                    </div>
-                    <div className="text-xs text-slate-500">
-                      {new Date(graveyard.createdAt).toLocaleDateString()}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+      <div className="mx-auto max-w-7xl mb-6">
+        <h1 className="text-4xl font-bold text-slate-900 mb-2">Graveyards</h1>
+        <p className="text-slate-600">Manage your cemetery locations on the map</p>
       </div>
 
-      {(showForm || editingGraveyard) && (
-        <GraveyardForm
-          graveyard={editingGraveyard || undefined}
-          onSubmit={editingGraveyard ? handleUpdate : handleCreate}
-          onClose={() => {
-            setShowForm(false);
-            setEditingGraveyard(null);
-          }}
-        />
-      )}
+      <div className="mx-auto max-w-7xl">
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden" style={{ minHeight: '70vh' }}>
+          <GraveyardMapView
+            onSelectGraveyard={handleSelectGraveyard}
+            selectedGraveyardId={selectedGraveyardId}
+          />
+        </div>
+      </div>
 
-      <Dialog open={showMapEditor} onOpenChange={setShowMapEditor}>
-        <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden">
-          <DialogHeader className="px-6 py-4 border-b border-slate-200">
-            <DialogTitle>Edit Graveyard Boundary</DialogTitle>
-          </DialogHeader>
-          {selectedGraveyard && (
-            <div className="overflow-hidden flex-1">
-              <MapEditor
-                onSavePolygon={handleSavePolygon}
-                initialPolygon={selectedGraveyard.polygon}
-                onClose={() => setShowMapEditor(false)}
-              />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
-
-      {selectedGraveyard && !showMapEditor && (
-        <Dialog open={!!selectedGraveyard} onOpenChange={() => setSelectedGraveyard(null)}>
+      {selectedGraveyard && (
+        <Dialog open={showDetailsPanel} onOpenChange={setShowDetailsPanel}>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden p-0">
             <GraveyardPropertiesPanel
               graveyard={selectedGraveyard}
               onUpdate={handleUpdateGraveyard}
-              onClose={() => setSelectedGraveyard(null)}
+              onClose={() => setShowDetailsPanel(false)}
             />
           </DialogContent>
         </Dialog>

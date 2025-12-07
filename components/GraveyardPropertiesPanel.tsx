@@ -24,8 +24,6 @@ export default function GraveyardPropertiesPanel({
   const [formData, setFormData] = useState({
     name: graveyard.name,
     location: graveyard.location,
-    latitude: graveyard.latitude?.toString() || '',
-    longitude: graveyard.longitude?.toString() || '',
   });
 
   const handleInputChange = (field: string, value: string) => {
@@ -40,13 +38,6 @@ export default function GraveyardPropertiesPanel({
       name: formData.name,
       location: formData.location,
     };
-
-    if (formData.latitude) {
-      updates.latitude = parseFloat(formData.latitude);
-    }
-    if (formData.longitude) {
-      updates.longitude = parseFloat(formData.longitude);
-    }
 
     onUpdate(updates);
     setIsEditing(false);
@@ -125,33 +116,6 @@ export default function GraveyardPropertiesPanel({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="latitude">Latitude</Label>
-                <Input
-                  id="latitude"
-                  type="number"
-                  step="0.0001"
-                  value={formData.latitude}
-                  onChange={(e) => handleInputChange('latitude', e.target.value)}
-                  className="mt-1"
-                  placeholder="e.g., 33.6844"
-                />
-              </div>
-              <div>
-                <Label htmlFor="longitude">Longitude</Label>
-                <Input
-                  id="longitude"
-                  type="number"
-                  step="0.0001"
-                  value={formData.longitude}
-                  onChange={(e) => handleInputChange('longitude', e.target.value)}
-                  className="mt-1"
-                  placeholder="e.g., 73.0479"
-                />
-              </div>
-            </div>
-
             <div className="flex gap-3 pt-4">
               <Button onClick={handleSave} className="flex-1 gap-2 bg-blue-600 hover:bg-blue-700">
                 <Save className="h-4 w-4" />
@@ -176,25 +140,6 @@ export default function GraveyardPropertiesPanel({
             <div>
               <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">Location</p>
               <p className="mt-1 text-slate-700 whitespace-pre-wrap">{graveyard.location}</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">
-                  Latitude
-                </p>
-                <p className="mt-1 text-slate-900 font-mono">
-                  {graveyard.latitude?.toFixed(4) || 'Not set'}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-slate-500 uppercase tracking-wide">
-                  Longitude
-                </p>
-                <p className="mt-1 text-slate-900 font-mono">
-                  {graveyard.longitude?.toFixed(4) || 'Not set'}
-                </p>
-              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-200">
